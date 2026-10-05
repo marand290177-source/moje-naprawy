@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marcin - Warsztat i Sprzedaż Sprzętu (kr)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col hidden md:flex">
+            <div class="p-5 border-b border-slate-700 flex items-center space-x-3">
+                <div class="bg-amber-500 p-2 rounded-lg text-slate-950 font-bold">
+                    <i data-lucide="wrench" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide">Warsztat & Serwis</h1>
+                    <p class="text-xs text-slate-400">Waluta: Duńskie Korony (kr)</p>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition bg-amber-500/10 text-amber-400 border border-amber-500/20 text-left">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Pulpit i Statystyki</span>
+                </button>
+                <button onclick="switchTab('inventory')" id="btn-inventory" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-slate-700/50 text-slate-300 text-left">
+                    <i data-lucide="cpu" class="w-5 h-5"></i>
+                    <span>Lista Sprzętu & Napraw</span>
+                </button>
+                <button onclick="switchTab('add')" id="btn-add" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-slate-700/50 text-slate-300 text-left">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    <span>Dodaj / Edytuj Urządzenie</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-700 text-xs text-slate-500 text-center">
+                Marcin Piotr Andrzejewski &copy; 2026
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            <!-- Top bar -->
+            <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+                <div class="flex items-center space-x-4">
+                    <h2 id="page-title" class="text-xl font-bold tracking-tight text-white">Pulpit i Statystyki</h2>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="exportData()" class="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-xs font-medium px-3 py-2 rounded-lg transition border border-slate-600">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Eksport JSON</span>
+                    </button>
+                    <button onclick="openAddModal()" class="flex items-center space-x-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3 py-2 rounded-lg transition shadow-lg shadow-amber-500/10">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Nowy Sprzęt</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tab Contents -->
+            <div class="p-6 max-w-7xl mx-auto w-full space-y-6">
+                
+                <!-- TAB 1: DASHBOARD -->
+                <div id="tab-dashboard" class="space-y-6">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Całkowity Zysk</span>
+                                <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
+                            </div>
+                            <div class="mt-3 flex items-baseline">
+                                <span id="stat-total-profit" class="text-2xl font-bold text-emerald-400">0.00 kr</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Suma zysków ze wszystkich pozycji</p>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sprzedane Urządzenia</span>
+                                <div class="p-2 bg-blue-500/10 text-blue-400 rounded-lg"><i data-lucide="shopping-bag" class="w-5 h-5"></i></div>
+                            </div>
+                            <div class="mt-3 flex items-baseline">
+                                <span id="stat-sold-count" class="text-2xl font-bold text-white">0</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Liczba pomyślnie sprzedanych sztuk</p>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">W Naprawie / Inne</span>
+                                <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="wrench" class="w-5 h-5"></i></div>
+                            </div>
+                            <div class="mt-3 flex items-baseline">
+                                <span id="stat-active-count" class="text-2xl font-bold text-white">0</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Sprzęt w toku, dawcy i zatrzymane</p>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Średni Zysk / Sztuka</span>
+                                <div class="p-2 bg-purple-500/10 text-purple-400 rounded-lg"><i data-lucide="dollar-sign" class="w-5 h-5"></i></div>
+                            </div>
+                            <div class="mt-3 flex items-baseline">
+                                <span id="stat-avg-profit" class="text-2xl font-bold text-white">0.00 kr</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Średnia rentowność urządzenia</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl">
+                            <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center space-x-2">
+                                <i data-lucide="pie-chart" class="w-4 h-4 text-amber-400"></i>
+                                <span>Statusy urządzeń</span>
+                            </h3>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl">
+                            <h3 class="text-sm font-semibold text-slate-300 mb-4 flex items-center space-x-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4 text-amber-400"></i>
+                                <span>Podsumowanie finansowe w kr (Koszt vs Przychód vs Zysk)</span>
+                            </h3>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="financialChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: INVENTORY -->
+                <div id="tab-inventory" class="space-y-4 hidden">
+                    <!-- Search and filters -->
+                    <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div class="relative w-full md:w-96">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="searchInput" oninput="filterTable()" placeholder="Szukaj po nazwie lub komentarzu..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition">
+                        </div>
+                        <div class="flex items-center space-x-3 w-full md:w-auto">
+                            <select id="statusFilter" onchange="filterTable()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-amber-500 transition w-full md:w-auto">
+                                <option value="">Wszystkie statusy</option>
+                                <option value="Sprzedany">Sprzedany</option>
+                                <option value="Zatrzymany">Zatrzymany</option>
+                                <option value="Naprawiony">Naprawiony</option>
+                                <option value="Dawca">Dawca</option>
+                                <option value="Na czesci,dawca">Na części, dawca</option>
+                                <option value="Wykonane">Wykonane</option>
+                                <option value="Do naprawy">Do naprawy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse" id="inventoryTable">
+                                <thead>
+                                    <tr class="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                                        <th class="p-4">Nazwa Sprzętu</th>
+                                        <th class="p-4">Data Zakupu</th>
+                                        <th class="p-4 text-right">Koszt Zakupu</th>
+                                        <th class="p-4 text-right">Koszt Naprawy</th>
+                                        <th class="p-4 text-right">Dochód</th>
+                                        <th class="p-4 text-right">Zysk</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Komentarz / Notatki serwisowe</th>
+                                        <th class="p-4 text-center">Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody" class="divide-y divide-slate-700/50 text-sm">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ADD / EDIT FORM -->
+                <div id="tab-add" class="space-y-6 hidden">
+                    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-2xl mx-auto">
+                        <h3 id="form-title" class="text-lg font-bold text-white mb-4 flex items-center space-x-2">
+                            <i data-lucide="plus-circle" class="w-5 h-5 text-amber-400"></i>
+                            <span>Dodaj nowe urządzenie do bazy</span>
+                        </h3>
+                        <form id="deviceForm" onsubmit="saveDevice(event)" class="space-y-4">
+                            <input type="hidden" id="editIndex" value="-1">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nazwa sprzętu</label>
+                                <input type="text" id="f-nazwa" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition" placeholder="np. Sonos Play 5">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Data zakupu</label>
+                                    <input type="date" id="f-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Status</label>
+                                    <select id="f-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition">
+                                        <option value="Sprzedany">Sprzedany</option>
+                                        <option value="Zatrzymany">Zatrzymany</option>
+                                        <option value="Naprawiony">Naprawiony</option>
+                                        <option value="Dawca">Dawca</option>
+                                        <option value="Na czesci,dawca">Na części, dawca</option>
+                                        <option value="Wykonane">Wykonane</option>
+                                        <option value="Do naprawy">Do naprawy</option>
+                                        <option value="W naprawie">W naprawie</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Koszt zakupu (kr)</label>
+                                    <input type="number" step="0.01" id="f-koszt-zakupu" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Koszt naprawy (kr)</label>
+                                    <input type="number" step="0.01" id="f-koszt-naprawy" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Dochód ze sprzedaży (kr)</label>
+                                    <input type="number" step="0.01" id="f-dochod" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Zysk automatyczny (kr)</label>
+                                <input type="number" step="0.01" id="f-zysk" readonly class="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-emerald-400 font-bold focus:outline-none" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Komentarz / Notatki serwisowe</label>
+                                <textarea id="f-komentarz" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition" placeholder="Opis usterki, wymienione części, numery seryjne..."></textarea>
+                            </div>
+                            <div class="flex justify-end space-x-3 pt-2">
+                                <button type="button" onclick="switchTab('inventory')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-5 py-2.5 rounded-lg text-sm font-medium transition">Anuluj</button>
+                                <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-6 py-2.5 rounded-lg text-sm font-bold transition shadow-lg shadow-amber-500/10">Zapisz urządzenie</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Embedded initial data & storage logic -->
+    <script>
+        let devices = [{"id": 2, "nazwa": "Sage Barista Express", "data_zakupu": "2023-04-01", "koszt_zakupu": 1500.0, "koszt_naprawy": 0.0, "dochod": 3000.0, "zysk": 1500.0, "status": "Sprzedany", "komentarz": "złe styki przepływomierza"}, {"id": 3, "nazwa": "Monitor AOC 27 cali", "data_zakupu": "2023-04-02", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 1000.0, "zysk": 900.0, "status": "Sprzedany", "komentarz": "przepalony bezpiecznik 4A,uszkodzony kondensator ceramiczny w module usb"}, {"id": 4, "nazwa": "Sage Barista Express", "data_zakupu": "2023-04-10", "koszt_zakupu": 1100.0, "koszt_naprawy": 0.0, "dochod": 1300.0, "zysk": 200.0, "status": "Sprzedany", "komentarz": "uszkodzona cewka elektrozaworu,sprzedany rodzicom"}, {"id": 5, "nazwa": "Sonos play 5.1", "data_zakupu": "2023-04-10", "koszt_zakupu": 165.0, "koszt_naprawy": 85.0, "dochod": 0.0, "zysk": -250.0, "status": "Na czesci,dawca", "komentarz": "uszkodzony przedwzmacniacz,brak dzwieku,dawca na części"}, {"id": 6, "nazwa": "Zasilacz Sitop power 40", "data_zakupu": "2023-03-20", "koszt_zakupu": 0.0, "koszt_naprawy": 5.0, "dochod": 376.0, "zysk": 371.0, "status": "Sprzedany", "komentarz": "uszkodzony kondensator elektrolityczny"}, {"id": 7, "nazwa": "TV Sony KD55X8505C", "data_zakupu": "2023-04-21", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 400.0, "zysk": 300.0, "status": "Zatrzymany", "komentarz": "uszkodzony software"}, {"id": 8, "nazwa": "Daniel naprawa laptopa", "data_zakupu": "2023-03-02", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 300.0, "zysk": 300.0, "status": "Naprawiony", "komentarz": "1. Uszkodzony system windows 10 black screen\n2. Czyszczenie macbook"}, {"id": 9, "nazwa": "TV Sony KD49X8305C", "data_zakupu": "2023-05-01", "koszt_zakupu": 600.0, "koszt_naprawy": 0.0, "dochod": 1200.0, "zysk": 600.0, "status": "Sprzedany", "komentarz": "uszkodzony software,kupiony z wieszakiem"}, {"id": 10, "nazwa": "Sonos play 5.2", "data_zakupu": "2023-05-15", "koszt_zakupu": 200.0, "koszt_naprawy": 320.35, "dochod": 900.0, "zysk": 379.65, "status": "Zatrzymany", "komentarz": "Koszt części do 3szt Sonos | Uszkodzona -strona wtorna przetwornicy-wypalecie w laminacie zrobilo zwarcie. Wymienilem 4 diody,naprawiono laminat. Sprzedano Audio Pro C5A Kamilowi w zamian"}, {"id": 11, "nazwa": "Sonos play 5.1", "data_zakupu": "2023-05-15", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 400.0, "status": "Sprzedany", "komentarz": "Brak zasialnia serial number-1300-00-0e-58-82-57-36-2. Uszkodzony mostek Gretza KBU606, bezpiecznik T3,15 230V"}, {"id": 12, "nazwa": "Sonos play 5.1", "data_zakupu": "2023-05-15", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 550.0, "status": "Sprzedany", "komentarz": "Nie łączył przez WIFI,prawy sredni ton i wysoki nie działa /SN 1311-00-0e-58-68-b5-0c-e,Wymieniono kondensatory koncowki mocy 5szt. 820uF 35V , 2szt. 470uF 25v, 1000uF 25v -stopien przedwzmacniacza. W koncowce mocy tranzystor M064 (Q27205),uklad M058 (Q27323)"}, {"id": 13, "nazwa": "Sonos play 5.1", "data_zakupu": "2023-05-15", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 550.0, "status": "Sprzedany", "komentarz": "Nie dzialaja srednie drivery - sn-1310-00-0e-58-83-96-3a-2- wymieniono kondensatory 5szt. 820uF, 2 szt 470uF, 1 sztk 1000uF.kondensatory od tweeterow 100uF 25V 2 szt."}, {"id": 14, "nazwa": "Sonos play 1.1", "data_zakupu": "2023-05-15", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 450.0, "zysk": 250.0, "status": "Sprzedany", "komentarz": "Glosnik do sprawdzenia-charczy-sn-1805-78-ca-90-8f-36-g, Wygiete mocowania glosnika woofer....brak szczelnosci w komorze glosnika."}, {"id": 15, "nazwa": "TV Samsung Lukasz", "data_zakupu": "2023-03-30", "koszt_zakupu": 0.0, "koszt_naprawy": 119.0, "dochod": 300.0, "zysk": 181.0, "status": "Naprawiony", "komentarz": "Koszt sterownika led | Uszkodzony zasilacz-bootloop, wymieniony sterownik ledów (podswietlania-SLC 1013M) zasilacz sie załączył."}, {"id": 16, "nazwa": "Libratone Lounge", "data_zakupu": "2023-05-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 400.0, "zysk": 400.0, "status": "Sprzedany", "komentarz": "Uszkodzone twitery,wymienione na sonosy od dawcy Play 5. Wymienione pasty w wzmacniaczu."}, {"id": 17, "nazwa": "Autka od Tomka", "data_zakupu": "2023-05-20", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Naprawiony", "komentarz": ""}, {"id": 18, "nazwa": "Lenovo Michala", "data_zakupu": "2023-05-20", "koszt_zakupu": 0.0, "koszt_naprawy": 20.0, "dochod": 300.0, "zysk": 280.0, "status": "Wykonane", "komentarz": "Zainstalowany system,wymieniona pasta,wyczyszczony"}, {"id": 19, "nazwa": "Sonos play 5.1 black", "data_zakupu": "2023-05-30", "koszt_zakupu": 150.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 600.0, "status": "Sprzedany", "komentarz": "Brak zasilania , brak 25V,uszkodzone rezystory po stronie pierwotnej przetwornicy. R27796 120kOhm , R27794 120KOhm smd\nWskazowka: Rezystancja wewnetrzna na zasilaniu 230V była w mega ohmach..powinno być około 480kOhm."}, {"id": 20, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2023-06-01", "koszt_zakupu": 264.0, "koszt_naprawy": 190.0, "dochod": 700.0, "zysk": 246.0, "status": "Sprzedany", "komentarz": "Średnie nie działają,bas mulasty - SN-1209-00-0E-58-57-BD-AE-B był otwierany.Wymieniono kondensatory 5stk.820uF 35V, 3stk 470uF,25V,2stk 100uF,25V"}, {"id": 21, "nazwa": "Sonos play 1.2 white", "data_zakupu": "2023-06-06", "koszt_zakupu": 350.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -350.0, "status": "Dawca", "komentarz": "Brak zasilania-SN-A200-1907WC-78-28-CA-EC-2B-6A-9 PIN 191-64-647 Uszkodzona koncowka mocy TPA 3116D2 plus kondensatory,dawca"}, {"id": 22, "nazwa": "Sonos play 3.1", "data_zakupu": "2023-06-13", "koszt_zakupu": 250.0, "koszt_naprawy": 190.0, "dochod": 650.0, "zysk": 210.0, "status": "Sprzedany", "komentarz": "SN / 1106 00-0E-58-70-4B-D0-7 Brak zasilania - czuć spaloną elektroniką-strona pierwotna zasilacza 3 szt. kondensatorow 33u400V"}, {"id": 23, "nazwa": "Sonos play 5.1 black", "data_zakupu": "2023-06-13", "koszt_zakupu": 500.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 100.0, "status": "Sprzedany", "komentarz": "Z DBA - Sprawny,wyczyszczony - SN-1204-00-0e-58-5d-81-d6-e"}, {"id": 24, "nazwa": "Sonos play 5.1 balck", "data_zakupu": "2023-06-14", "koszt_zakupu": 273.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 477.0, "status": "Sprzedany", "komentarz": "From Orderly - SN 1309-00-0e-58-8b-60-62-d  Sprawny,pomalowana maskowica"}, {"id": 25, "nazwa": "Hp elitebook 8760w", "data_zakupu": "2023-06-28", "koszt_zakupu": 0.0, "koszt_naprawy": 328.0, "dochod": 1500.0, "zysk": 1172.0, "status": "Sprzedany", "komentarz": "Darmowy,znaleziony,nowa bateria,nowe pasty termiczne ok"}, {"id": 26, "nazwa": "Sonos play 3.1 white", "data_zakupu": "2023-04-01", "koszt_zakupu": 150.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -150.0, "status": "Sprzedany", "komentarz": "Kondensatory w zasilaczu do wymiany,odbudowanie uszkodznych ścieżek. Wymieniono 3stk. 33uF400V.Wymieniony na Sonos 5.1 black sprawny"}, {"id": 27, "nazwa": "Sonos play 3.1 black", "data_zakupu": "2023-04-01", "koszt_zakupu": 150.0, "koszt_naprawy": 0.0, "dochod": 400.0, "zysk": 250.0, "status": "Dawca", "komentarz": "Przepalony bezpiecznik,zostal dawca dla innego play 3. teraz ma procesor z bialego"}, {"id": 28, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2023-04-07", "koszt_zakupu": 250.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 500.0, "status": "Sprzedane", "komentarz": "Nie graja srednie tony,wymiana kompletu kondensatorow."}, {"id": 29, "nazwa": "Sonos play 5.1 black", "data_zakupu": "2023-04-07", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 800.0, "zysk": 800.0, "status": "Sprzedany", "komentarz": "Sprawny do wyczyszczenia-Na zamiane za Sonos 3.1 white dla Per S/N 1202 00-0e-58-50-11-1e-7"}, {"id": 30, "nazwa": "MacBook Pro 13 2010", "data_zakupu": "2023-07-09", "koszt_zakupu": 300.0, "koszt_naprawy": 705.0, "dochod": 1000.0, "zysk": -5.0, "status": "Sprzedany", "komentarz": "Laptop dla Aniki,bateria do wymianynowy ram 16g,tasma dysku,brak systemu"}, {"id": 31, "nazwa": "Ismaskine", "data_zakupu": "2023-07-09", "koszt_zakupu": 75.0, "koszt_naprawy": 0.0, "dochod": 700.0, "zysk": 625.0, "status": "Sprzedany", "komentarz": "Uszkodzony zasilacz impulsowy 5v"}, {"id": 32, "nazwa": "Libratone Zipp", "data_zakupu": "2023-08-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 300.0, "zysk": 300.0, "status": "Sprzedany", "komentarz": "Naprawiony,potrzebny zasilacz 19V 1,8A wtyka 5,5mm,od Tommy gratis za naprawienie SUB"}, {"id": 33, "nazwa": "TV Sony kd55xd8599", "data_zakupu": "2023-08-13", "koszt_zakupu": 1000.0, "koszt_naprawy": 212.0, "dochod": 0.0, "zysk": -1212.0, "status": "Dawca", "komentarz": "Bez zasailacza i pilota,ponoc dziala-nie dziala,proboje startowac i sie resetuje-zamowiony 3stk tcon z chin...Dawca..nie oplaca sie naprawic fuzk"}, {"id": 34, "nazwa": "Sonos SUB", "data_zakupu": "2023-08-08", "koszt_zakupu": 0.0, "koszt_naprawy": 85.0, "dochod": 0.0, "zysk": -85.0, "status": "Wykonane", "komentarz": "W naprawie dla Tommy od Sonos-Dioda D15 Zener,rezystor r36 30kohm"}, {"id": 35, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2023-08-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 650.0, "zysk": 650.0, "status": "Sprzedany", "komentarz": "Nie zyje-gratis od Tommy za naprawe SUB"}, {"id": 36, "nazwa": "Sonos play 5.1 black", "data_zakupu": "2023-08-14", "koszt_zakupu": 250.0, "koszt_naprawy": 0.0, "dochod": 650.0, "zysk": 400.0, "status": "Sprzedany", "komentarz": "Nie zyje. konakt Kristoffer tlf. 22622070"}, {"id": 37, "nazwa": "MacBook Pro 13 2015", "data_zakupu": "2023-08-14", "koszt_zakupu": 800.0, "koszt_naprawy": 737.0, "dochod": 2200.0, "zysk": 663.0, "status": "Sprzedany", "komentarz": "197kr ladowarka plus 540kr batt | Bateria do wymiany,brak ladowarki -kontakt Mick Thimes tlf. 30634879"}, {"id": 38, "nazwa": "Zakupy TME", "data_zakupu": "2023-08-16", "koszt_zakupu": 273.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -273.0, "status": "Nieznany", "komentarz": ""}, {"id": 39, "nazwa": "Sonos bridge new", "data_zakupu": "2023-08-24", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 125.0, "zysk": 125.0, "status": "Sprzedany", "komentarz": ""}, {"id": 40, "nazwa": "Zakupy TME", "data_zakupu": "2023-08-30", "koszt_zakupu": 434.59, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -434.59, "status": "Nieznany", "komentarz": ""}, {"id": 41, "nazwa": "Asus N53SN", "data_zakupu": "", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 300.0, "zysk": 300.0, "status": "Wykonane", "komentarz": "Do wyczyszczenia i wymiany past thermo,"}, {"id": 42, "nazwa": "Brother 895 symaskine", "data_zakupu": "2023-10-11", "koszt_zakupu": 0.0, "koszt_naprawy": 216.0, "dochod": 750.0, "zysk": 534.0, "status": "Wykonane", "komentarz": "Dla Tommy od Sonos,wymiana podswietlenia wyswietlacza lcd"}, {"id": 43, "nazwa": "Sonos play 1.2 white", "data_zakupu": "2023-10-13", "koszt_zakupu": 375.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 375.0, "status": "Sprzedany", "komentarz": "Kupiony na DBA ,zle graja niskie tony..na czesci do wczesniej kupionego ze zwarciem w laminacie."}, {"id": 44, "nazwa": "Beoplay S8", "data_zakupu": "2023-10-14", "koszt_zakupu": 800.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -800.0, "status": "W naprawie", "komentarz": "Martwy"}, {"id": 45, "nazwa": "Wharfedale WH-D8 sub", "data_zakupu": "2023-10-15", "koszt_zakupu": 300.0, "koszt_naprawy": 0.0, "dochod": 850.0, "zysk": 550.0, "status": "Sprzedany", "komentarz": "Uszkodzony zasilacz\nBesvar:\n    Dwa kodensatory wyschnięte..wymieniono ..ok"}, {"id": 46, "nazwa": "UPS HP-T750", "data_zakupu": "2023-10-16", "koszt_zakupu": 0.0, "koszt_naprawy": 338.0, "dochod": 750.0, "zysk": 412.0, "status": "Sprzedany", "komentarz": "Sprawny,nowe akumulatory"}, {"id": 47, "nazwa": "Zakupy Ali", "data_zakupu": "2023-10-19", "koszt_zakupu": 295.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -295.0, "status": "Nieznany", "komentarz": "Książka rezystorów i części do Beoplay S8"}, {"id": 48, "nazwa": "Wharfedale SW-12 sub", "data_zakupu": "2023-10-22", "koszt_zakupu": 400.0, "koszt_naprawy": 20.0, "dochod": 1800.0, "zysk": 1380.0, "status": "Sprzedany", "komentarz": "Uszkodzenie-kondensator w obszarze wzmacniacza wymianiono-ok. Zwrot-brak regulacji głośnosci do sprawdzeni,naprawiony."}, {"id": 49, "nazwa": "Sonos Play 5.1 -black", "data_zakupu": "2023-11-01", "koszt_zakupu": 250.0, "koszt_naprawy": 0.0, "dochod": 780.0, "zysk": 530.0, "status": "Sprzedany", "komentarz": "Martwy"}, {"id": 50, "nazwa": "CD Audio Analouge", "data_zakupu": "2013-12-04", "koszt_zakupu": 670.0, "koszt_naprawy": 150.0, "dochod": 3500.0, "zysk": 2680.0, "status": "Sprzedane", "komentarz": "Uszkodzony pilot,tacka nie wychodzi czasami,uszkodzony wyswietlacz lcd- Pilot naprawiony,wyswietlacz wymieniony na oled.- gotowy do testow"}, {"id": 51, "nazwa": "NAD 3020", "data_zakupu": "2023-12-12", "koszt_zakupu": 700.0, "koszt_naprawy": 0.0, "dochod": 1650.0, "zysk": 950.0, "status": "Sprzedany", "komentarz": ""}, {"id": 52, "nazwa": "Peltor LiteCom", "data_zakupu": "2023-12-20", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 820.0, "zysk": 820.0, "status": "Sprzedane", "komentarz": "Znalezione w odpadach elektronicznych,wyczyszczone,sprawne"}, {"id": 53, "nazwa": "HDD Seagate Video3,5", "data_zakupu": "2024-01-04", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 200.0, "zysk": 200.0, "status": "Sprzedane", "komentarz": "Znaleziony w odpadach,przetestowany,OK"}, {"id": 54, "nazwa": "UPSAPC-smart 750", "data_zakupu": "2024-01-09", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 1200.0, "zysk": 1200.0, "status": "Sprzedany", "komentarz": "Baterie do wymiany"}, {"id": 55, "nazwa": "Sage Oracle Touch", "data_zakupu": "2024-01-12", "koszt_zakupu": 500.0, "koszt_naprawy": 94.0, "dochod": 2000.0, "zysk": 1406.0, "status": "Sprzedany", "komentarz": "Scalak sterujacy mosfetem | Uszkodzony zasilacz 12VDC,naprawiony,uzylem innego zasilacza 12V ,wydaje ie ,ze trzeci przewod oznaczony \"signal\" nie jest wykorzystany w tej wersji . Ekspres zatrzymany ,stary do sprzedazy."}, {"id": 56, "nazwa": "Nad 326bee", "data_zakupu": "2024-02-06", "koszt_zakupu": 300.0, "koszt_naprawy": 63.0, "dochod": 0.0, "zysk": -363.0, "status": "Do naprawy", "komentarz": "Balance potencjometr do wymiany"}, {"id": 57, "nazwa": "Zakupy TME", "data_zakupu": "2024-02-12", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -200.0, "status": "Nieznany", "komentarz": ""}, {"id": 58, "nazwa": "Sonos play 5 black", "data_zakupu": "2024-03-01", "koszt_zakupu": 250.0, "koszt_naprawy": 0.0, "dochod": 805.0, "zysk": 555.0, "status": "Sprzedany", "komentarz": ""}, {"id": 59, "nazwa": "Sonos play 5 black", "data_zakupu": "2024-03-01", "koszt_zakupu": 250.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 350.0, "status": "Sprzedany", "komentarz": ""}, {"id": 60, "nazwa": "Sonos play 3 white", "data_zakupu": "2024-04-01", "koszt_zakupu": 500.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -500.0, "status": "Dawca", "komentarz": "Nie resetowal sie,nieudana naprawa,dawca,moze udalo by sie podmienic pamiec nand"}, {"id": 61, "nazwa": "Sonos play 3 white", "data_zakupu": "2024-04-01", "koszt_zakupu": 500.0, "koszt_naprawy": 0.0, "dochod": 675.0, "zysk": 175.0, "status": "Sprzedany", "komentarz": ""}, {"id": 62, "nazwa": "Marantz 6005", "data_zakupu": "2024-04-04", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 1100.0, "zysk": 1100.0, "status": "Sprzedany", "komentarz": "Moj uzywany wzmacniacz ,wystawiony na sprzedaz"}, {"id": 63, "nazwa": "Zakupy TME", "data_zakupu": "2024-04-24", "koszt_zakupu": 422.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -422.0, "status": "Nieznany", "komentarz": ""}, {"id": 64, "nazwa": "Sonos play 5.2 white", "data_zakupu": "2024-04-24", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 200.0, "zysk": 200.0, "status": "Naprawiony", "komentarz": "Od kolegi Tommy - do naprawy-martwy-brak 3,3V( TPS54335A) - Dc/dc konwerter do wymiany"}, {"id": 65, "nazwa": "Sonos play 1.1 white", "data_zakupu": "2024-04-24", "koszt_zakupu": 125.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 475.0, "status": "Sprzedany", "komentarz": "Do naprawy od kolegi Tommy - uszkodzony warystor i bezpiecznik,Sprzedal mi za 125kr"}, {"id": 66, "nazwa": "Sonos play 1.1 white", "data_zakupu": "2024-04-24", "koszt_zakupu": 125.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 475.0, "status": "Sprzedany", "komentarz": "Do naprawy od kolegi Tommy - uszkodzony warystor i bezpiecznik,Sprzedal mi za 125kr"}, {"id": 67, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2024-04-24", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 750.0, "status": "Sprzedany", "komentarz": "Od Tommy -martwy."}, {"id": 68, "nazwa": "Sonos play 5.2 white", "data_zakupu": "2024-05-21", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 550.0, "zysk": 550.0, "status": "Naprawiony", "komentarz": "Od Tommy - nie zalacza sie ,ponoc brak komunikacji WIFI - poprawilem luty na bug konwerterze 3,3V - test"}, {"id": 69, "nazwa": "Sonos Play 5.1 white", "data_zakupu": "2024-05-28", "koszt_zakupu": 270.0, "koszt_naprawy": 0.0, "dochod": 700.0, "zysk": 430.0, "status": "Sprzedany", "komentarz": "Oryginalne opakowanie , zle brzmi,kondensatory do wymiany w sekcji wzmacniacza"}, {"id": 70, "nazwa": "Samsung cf791 monitor", "data_zakupu": "2024-05-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Zatrzymany", "komentarz": "Byl uszkodzony,wlasciciel oddal za darmo,wyczepiona tasma od Ticon,podlaczylem sporowtem,dziala,moze do sprzedarzy"}, {"id": 71, "nazwa": "Sonos play 5.2 black", "data_zakupu": "2024-06-10", "koszt_zakupu": 2000.0, "koszt_naprawy": 0.0, "dochod": 2300.0, "zysk": 300.0, "status": "Sprzedany", "komentarz": ""}, {"id": 72, "nazwa": "Sonos move black", "data_zakupu": "2024-06-10", "koszt_zakupu": 500.0, "koszt_naprawy": 0.0, "dochod": 1500.0, "zysk": 1000.0, "status": "Sprzedany", "komentarz": ""}, {"id": 73, "nazwa": "Sonos move black", "data_zakupu": "2024-06-10", "koszt_zakupu": 500.0, "koszt_naprawy": 0.0, "dochod": 1500.0, "zysk": 1000.0, "status": "Sprzedany", "komentarz": ""}, {"id": 74, "nazwa": "Sonos play 1 black", "data_zakupu": "2024-06-11", "koszt_zakupu": 157.0, "koszt_naprawy": 0.0, "dochod": 500.0, "zysk": 343.0, "status": "Sprzedany", "komentarz": ""}, {"id": 75, "nazwa": "Philips CD 100", "data_zakupu": "2024-07-15", "koszt_zakupu": 1500.0, "koszt_naprawy": 0.0, "dochod": 4000.0, "zysk": 2500.0, "status": "Sprzedany", "komentarz": "Nie startuje naped,uszkodzony mikro switch klapki. Prawdopodobnie do zatrzymania jako inwestycja,kolekcjonerski model. Cena 1500kr\nWymienione kluczowe konensatory, zaniki napiecia byly spowodowane zimnym lutem na pcb."}, {"id": 76, "nazwa": "Pioneer  SX 434", "data_zakupu": "2024-07-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Zatrzymany", "komentarz": "Dziala ale trzeba wymienic zarowke skalo ,przelaczniki do czyszczenia. Prawdopodobnie do zatrztmania do moejgo zestwau retro. Cena 500kr"}, {"id": 77, "nazwa": "Thorens TD 169", "data_zakupu": "2024-07-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Zatrzymany", "komentarz": "Do renowacji,do mojego zestawu retro. Cena 1500kr"}, {"id": 78, "nazwa": "Boston Acoustic A60II", "data_zakupu": "2024-07-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Zatrzymany", "komentarz": "Do renowacji,do zestawu retro. cena 1297kr"}, {"id": 79, "nazwa": "Boston Acoustic A70II", "data_zakupu": "2024-07-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Zatrzymany", "komentarz": "Kupione we wloszech do salonu jako druga para glosnikow. Cena 2245kr"}, {"id": 80, "nazwa": "Atoll CD100 MkIII", "data_zakupu": "2024-07-18", "koszt_zakupu": 1080.0, "koszt_naprawy": 149.0, "dochod": 0.0, "zysk": -1229.0, "status": "Zatrzymany", "komentarz": "Nie widzi plyty.\nBesvar:\n    Naped do wymiany"}, {"id": 81, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2024-08-12", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 500.0, "status": "Sprzedany", "komentarz": "Do recapingu,naprawiony"}, {"id": 82, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2024-08-12", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 500.0, "zysk": 400.0, "status": "Sprzedany", "komentarz": "Do recapingu"}, {"id": 83, "nazwa": "Siemens ct636les1", "data_zakupu": "2024-08-14", "koszt_zakupu": 500.0, "koszt_naprawy": 104.0, "dochod": 3000.0, "zysk": 2396.0, "status": "Sprzedany", "komentarz": "Uszkodzony silnik mlynka-wymieniono szczotki-ok, brak ekstrakcji"}, {"id": 84, "nazwa": "Zakupy TME", "data_zakupu": "2024-08-21", "koszt_zakupu": 258.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -258.0, "status": "Nieznany", "komentarz": ""}, {"id": 85, "nazwa": "Sonos play 1 gen 2", "data_zakupu": "2024-08-27", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -100.0, "status": "Do naprawy", "komentarz": "Po awarii sieci elektryczne,prawdopodobnie warystor plus bezpiecznik-bezpiecznik nie zdarzyl,Uszkodzona pirwotna strona zasilacza impulsowego oraz glosnik basowy"}, {"id": 86, "nazwa": "Sonos play 1 gen2", "data_zakupu": "2024-08-27", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 800.0, "zysk": 700.0, "status": "Sprzedany", "komentarz": "Po awarii sieci elektryczne,prawdopodobnie warystor plus bezpiecznik.Warystor i bezpiecznik"}, {"id": 87, "nazwa": "Zakupy na Aliexpress", "data_zakupu": "2024-09-19", "koszt_zakupu": 212.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -212.0, "status": "Nieznany", "komentarz": ""}, {"id": 88, "nazwa": "Sonos play 5.1 white", "data_zakupu": "2024-10-02", "koszt_zakupu": 150.0, "koszt_naprawy": 0.0, "dochod": 650.0, "zysk": 500.0, "status": "Sprzedany", "komentarz": "Od Tommy-soprano nie dzialaja,kondensatory,caly set"}, {"id": 89, "nazwa": "Siemens sn45zs10cs", "data_zakupu": "2024-10-10", "koszt_zakupu": 300.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -300.0, "status": "Zatrzymany", "komentarz": "Zatrzymuje sie podczas wykonywania programu"}, {"id": 90, "nazwa": "Brother 895 symaskine", "data_zakupu": "2024-10-27", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 0.0, "status": "Wykonane", "komentarz": "Wyswietlacz czasami traci kontrast,sprawdzono polaczenia tasm ,tet ponad tydzien,nie wykryto bledu ,wsystko ok. Gratis dla Tommy"}, {"id": 91, "nazwa": "Laptop MSI 16W1", "data_zakupu": "2024-11-21", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 600.0, "status": "Wykonane", "komentarz": "Czyszczenie.wymiana pasty,sprawdzenie gniazda zasilania"}, {"id": 92, "nazwa": "Laptop Clevo P170SM", "data_zakupu": "2024-11-28", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 600.0, "status": "Wykonane", "komentarz": "Czyszczenie,wymiana pasty"}, {"id": 93, "nazwa": "Marantz 6005 streamer", "data_zakupu": "2025-01-02", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 900.0, "zysk": 900.0, "status": "Sprzedany", "komentarz": "Z mojego zestaw,nieuzywany"}, {"id": 94, "nazwa": "Sonos ZP90", "data_zakupu": "2025-01-23", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 300.0, "zysk": 300.0, "status": "Sprzedany", "komentarz": ""}, {"id": 95, "nazwa": "MacBook Pro 2017", "data_zakupu": "2025-01-27", "koszt_zakupu": 0.0, "koszt_naprawy": 85.0, "dochod": 800.0, "zysk": 715.0, "status": "Wykonane", "komentarz": "Copper jumper wire z Aliexpress | Flex gate-pierwszy do treningu od dziewczyny Michala"}, {"id": 96, "nazwa": "Sonos ZP90", "data_zakupu": "2025-02-01", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 200.0, "zysk": 200.0, "status": "Wykonane", "komentarz": "Wyjscie RCA nie dziala\nBesvar:\n    Wymieniona cala plytka wzmacniacza-ok"}, {"id": 97, "nazwa": "Sonos play 5.1", "data_zakupu": "2025-03-01", "koszt_zakupu": 0.0, "koszt_naprawy": 100.0, "dochod": 0.0, "zysk": -100.0, "status": "Dawca", "komentarz": "Od Tommy,martwy,obudowa uszkodzona"}, {"id": 98, "nazwa": "Macbook 13 2017 touch", "data_zakupu": "2025-03-18", "koszt_zakupu": 0.0, "koszt_naprawy": 556.0, "dochod": 0.0, "zysk": -556.0, "status": "Do naprawy", "komentarz": "Flexgate - uszkodzona tasma podswietlneia ,ekran do polerki,system do zainstalowania,lewy wentylator czasami halasuje,pasta do wymiany...moze dam Ewie ."}, {"id": 99, "nazwa": "Sonos play 5 gen1 black", "data_zakupu": "2025-05-02", "koszt_zakupu": 0.0, "koszt_naprawy": 150.0, "dochod": 0.0, "zysk": -150.0, "status": "Do naprawy", "komentarz": "Od Tommy-martwy"}, {"id": 100, "nazwa": "Sonos play 1 gen. white", "data_zakupu": "2025-05-02", "koszt_zakupu": 0.0, "koszt_naprawy": 150.0, "dochod": 0.0, "zysk": -150.0, "status": "Do naprawy", "komentarz": "Od Tommy - martwy"}, {"id": 101, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-05-10", "koszt_zakupu": 0.0, "koszt_naprawy": 297.0, "dochod": 0.0, "zysk": -297.0, "status": "Do naprawy", "komentarz": "Kupiony sprawny ,do sprzedazy\nBesvar:\n    Mial byc sprawny,okazal sie do naprawy-recaping\nOznaczono jako zakończone"}, {"id": 102, "nazwa": "Sonos play 3 gen.1 white", "data_zakupu": "2025-05-10", "koszt_zakupu": 0.0, "koszt_naprawy": 297.0, "dochod": 500.0, "zysk": 203.0, "status": "Sprzedany", "komentarz": "Kupiony sprawny,do sprzedazy"}, {"id": 103, "nazwa": "Zakupy TME", "data_zakupu": "2025-05-13", "koszt_zakupu": 0.0, "koszt_naprawy": 255.66, "dochod": 0.0, "zysk": -255.66, "status": "Nieznany", "komentarz": ""}, {"id": 104, "nazwa": "Zakupy Aliexpress", "data_zakupu": "2015-05-13", "koszt_zakupu": 0.0, "koszt_naprawy": 57.68, "dochod": 0.0, "zysk": -57.68, "status": "Nieznany", "komentarz": ""}, {"id": 105, "nazwa": "Maszyna do lodow Harry", "data_zakupu": "2025-05-23", "koszt_zakupu": 0.0, "koszt_naprawy": 346.0, "dochod": 1200.0, "zysk": 854.0, "status": "naprawiona", "komentarz": "Do naprawy plyta sterujaca/upalony triac i optocoupler"}, {"id": 106, "nazwa": "Sonos play 5 gen 2 white", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 1400.0, "dochod": 2600.0, "zysk": 1200.0, "status": "sprzedany", "komentarz": "Komplet kupiony na hadel za 7000kr"}, {"id": 107, "nazwa": "Sonos play 5 gen 2 white", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 1400.0, "dochod": 2600.0, "zysk": 1200.0, "status": "sprzedany", "komentarz": "Komplet kupiony na hadel za 7000kr"}, {"id": 108, "nazwa": "Sonos sub white", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 1400.0, "dochod": 2600.0, "zysk": 1200.0, "status": "sprzedany", "komentarz": "Komplet kupiony na hadel za 7000kr"}, {"id": 109, "nazwa": "Ikea Symfonisk gen1", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 1400.0, "dochod": 650.0, "zysk": -750.0, "status": "Nieznany", "komentarz": "Komplet kupiony na hadel za 7000kr"}, {"id": 110, "nazwa": "Ikea Symfonisk gen1", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 1400.0, "dochod": 650.0, "zysk": -750.0, "status": "Nieznany", "komentarz": "Komplet kupiony na hadel za 7000kr"}, {"id": 111, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 204.0, "dochod": 0.0, "zysk": -204.0, "status": "Nieznany", "komentarz": "Uszkodzony  z DBA do recapu"}, {"id": 112, "nazwa": "Canon IXUS 175", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 800.0, "zysk": 800.0, "status": "sprzedany", "komentarz": "Z odpadow elektronicznych znalezione"}, {"id": 113, "nazwa": "Canon IXUS 175", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 1100.0, "zysk": 1100.0, "status": "sprzedany", "komentarz": "Z odpadow elektronicznych znalezione"}, {"id": 114, "nazwa": "Canon IXUS 175", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 800.0, "zysk": 800.0, "status": "sprzedany", "komentarz": "Z odpadow elektronicznych znalezione"}, {"id": 115, "nazwa": "Canon IXUS 175", "data_zakupu": "2025-06-08", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 760.0, "zysk": 760.0, "status": "sprzedany", "komentarz": ""}, {"id": 116, "nazwa": "Canon PowerShot A810", "data_zakupu": "2025-06-19", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 400.0, "zysk": 400.0, "status": "sprzedany", "komentarz": ""}, {"id": 117, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": "Kupione 7stk z roznymi usterkami"}, {"id": 118, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": ""}, {"id": 119, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": ""}, {"id": 120, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": ""}, {"id": 121, "nazwa": "Sonos play 5 gen.1 white", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": ""}, {"id": 122, "nazwa": "Sonos play 5 gen.1 black", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -143.0, "status": "Nieznany", "komentarz": ""}, {"id": 123, "nazwa": "Sonos play 5 gen.1 black", "data_zakupu": "2025-06-21", "koszt_zakupu": 143.0, "koszt_naprawy": 143.0, "dochod": 0.0, "zysk": -286.0, "status": "Nieznany", "komentarz": ""}, {"id": 124, "nazwa": "Sonos play 3", "data_zakupu": "2025-08-18", "koszt_zakupu": 200.0, "koszt_naprawy": 0.0, "dochod": 500.0, "zysk": 300.0, "status": "Sprzedany", "komentarz": "Od Tommy,zasilacz do naprawy"}, {"id": 125, "nazwa": "Sonos amp.gen1", "data_zakupu": "2025-08-18", "koszt_zakupu": 200.0, "koszt_naprawy": 41.0, "dochod": 0.0, "zysk": -241.0, "status": "Dawca", "komentarz": "Od Tommy,prawdopodobnie zasilacz. Zasilacz naprawiony. Wzmacniacz jest wykrywalny tylko po lanie. Blad sieci przy probie odtwarzania"}, {"id": 126, "nazwa": "M-Audio Mixer", "data_zakupu": "2025-08-20", "koszt_zakupu": 100.0, "koszt_naprawy": 0.0, "dochod": 500.0, "zysk": 400.0, "status": "Sprzedany", "komentarz": "Brak zasilania\nUszkodzony zasilacz"}, {"id": 127, "nazwa": "Sonos Play 1 gen.1", "data_zakupu": "2025-08-20", "koszt_zakupu": 150.0, "koszt_naprawy": 0.0, "dochod": 700.0, "zysk": 550.0, "status": "Sprzedany", "komentarz": "Brak zasilania\nBesvar:\n    Wypalona sciezka po stronie pierwotnej przetwornicy. Napiecie z diod prostowniczych do sterownika mosfetu przez rezystor 2,2kohm"}, {"id": 128, "nazwa": "Sonos Play 1 gen.2", "data_zakupu": "2025-09-01", "koszt_zakupu": 225.0, "koszt_naprawy": 0.0, "dochod": 1000.0, "zysk": 775.0, "status": "Sprzedany", "komentarz": "Po zwarciu instalacji elektrycznej,brak zasilania,bezpiecznik i warystor wymieniono"}, {"id": 129, "nazwa": "Sonos beam gen.1", "data_zakupu": "2025-09-01", "koszt_zakupu": 225.0, "koszt_naprawy": 0.0, "dochod": 1300.0, "zysk": 1075.0, "status": "Sprzedany", "komentarz": "Po zwarciu instalacji elektrycznej,brak zasilania,warystor i bezpiecznik wymieniono"}, {"id": 130, "nazwa": "Sonos Play 5 gen.1 wh", "data_zakupu": "", "koszt_zakupu": 180.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -180.0, "status": "Do naprawy", "komentarz": "Do recapingu,kiepski bas i soprany"}, {"id": 131, "nazwa": "Technics EQ SH-GE70", "data_zakupu": "2025-11-12", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 1900.0, "zysk": 1900.0, "status": "Sprzedany", "komentarz": ""}, {"id": 132, "nazwa": "Sage barista pro", "data_zakupu": "2025-12-07", "koszt_zakupu": 900.0, "koszt_naprawy": 837.0, "dochod": 2900.0, "zysk": 1163.0, "status": "Sprzedany", "komentarz": "Zatkany element grzewczy,stary typ 4 polowy,potrzebna wymiana na 3 pola plus plytka pcb"}, {"id": 133, "nazwa": "Lenovo Michala", "data_zakupu": "2026-02-17", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 600.0, "status": "Wykonane", "komentarz": ""}, {"id": 134, "nazwa": "Philips cd 100", "data_zakupu": "2026-03-01", "koszt_zakupu": 1500.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -1500.0, "status": "Do naprawy", "komentarz": "Czujnik zamkniecia klaplki do czyszcenia,wymiana kodensatorow"}, {"id": 135, "nazwa": "CFmoto LCD dashboard", "data_zakupu": "2026-05-19", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 1200.0, "zysk": 1200.0, "status": "Wykonane", "komentarz": "Od Krystiana Ottomanskiego- wyswietlacz od ATV po zalaniu,uszkodzona tasma,kilka opornikow uszkodzonych ,tranzystor pnp q18."}, {"id": 136, "nazwa": "Sonos Ikea shelf", "data_zakupu": "2026-06-15", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 900.0, "zysk": 900.0, "status": "Sprzedany", "komentarz": ""}, {"id": 137, "nazwa": "Sonos ARC", "data_zakupu": "2026-07-10", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": 2000.0, "status": "Wykonane", "komentarz": "Naprawa zasilacza w zamian za Sonos move sprawny"}, {"id": 138, "nazwa": "Sonos Ikea shelf", "data_zakupu": "2026-08-10", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 600.0, "zysk": 600.0, "status": "Sprzedany", "komentarz": ""}, {"id": 139, "nazwa": "Sonos Ikea shelf", "data_zakupu": "2026-08-10", "koszt_zakupu": 0.0, "koszt_naprawy": 0.0, "dochod": 750.0, "zysk": 750.0, "status": "Sprzedany", "komentarz": ""}, {"id": 140, "nazwa": "Sage Oracle Touch", "data_zakupu": "2026-09-04", "koszt_zakupu": 1300.0, "koszt_naprawy": 0.0, "dochod": 0.0, "zysk": -1300.0, "status": "Do naprawy", "komentarz": "Nie dzialala ekstrakcja,byl zatkany,zakamieniony,problem z mlynkiem-mieli za malo"}];
+
+        // Load from localStorage first if exists
+        if (localStorage.getItem('marcin_devices')) {
+            try {
+                devices = JSON.parse(localStorage.getItem('marcin_devices'));
+            } catch(e) {
+                console.error("Error loading localStorage", e);
+            }
+        }
+
+        let statusChartInstance = null;
+        let financialChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderDashboard();
+            renderTable();
+        });
+
+        function switchTab(tabId) {
+            ['dashboard', 'inventory', 'add'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`btn-${t}`);
+                if(btn) {
+                    btn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-slate-700/50 text-slate-300 text-left";
+                }
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if(activeBtn) {
+                activeBtn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition bg-amber-500/10 text-amber-400 border border-amber-500/20 text-left";
+            }
+
+            const titles = {
+                'dashboard': 'Pulpit i Statystyki',
+                'inventory': 'Lista Sprzętu & Napraw',
+                'add': 'Dodaj / Edytuj Urządzenie'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            if(tabId === 'dashboard') {
+                renderDashboard();
+            } else if(tabId === 'inventory') {
+                renderTable();
+            }
+        }
+
+        function renderDashboard() {
+            let totalProfit = 0;
+            let soldCount = 0;
+            let activeCount = 0;
+            let statusCounts = {};
+
+            let totalRevenue = 0;
+            let totalCost = 0;
+
+            devices.forEach(d => {
+                totalProfit += (d.zysk || 0);
+                totalRevenue += (d.dochod || 0);
+                totalCost += ((d.koszt_zakupu || 0) + (d.koszt_naprawy || 0));
+
+                const st = d.status || 'Inne';
+                statusCounts[st] = (statusCounts[st] || 0) + 1;
+
+                if(st.toLowerCase().includes('sprzedany') || st.toLowerCase().includes('sprzedane')) {
+                    soldCount++;
+                } else {
+                    activeCount++;
+                }
+            });
+
+            document.getElementById('stat-total-profit').innerText = totalProfit.toLocaleString('da-DK', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' kr';
+            document.getElementById('stat-sold-count').innerText = soldCount;
+            document.getElementById('stat-active-count').innerText = activeCount;
+            const avgProfit = devices.length > 0 ? totalProfit / devices.length : 0;
+            document.getElementById('stat-avg-profit').innerText = avgProfit.toLocaleString('da-DK', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' kr';
+
+            // Render Status Chart
+            const ctx1 = document.getElementById('statusChart').getContext('2d');
+            if(statusChartInstance) statusChartInstance.destroy();
+            
+            const labels = Object.keys(statusCounts);
+            const dataVals = Object.values(statusCounts);
+            const bgColors = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#64748b', '#06b6d4'];
+
+            statusChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataVals,
+                        backgroundColor: bgColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            // Render Financial Chart
+            const ctx2 = document.getElementById('financialChart').getContext('2d');
+            if(financialChartInstance) financialChartInstance.destroy();
+
+            financialChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Koszty (Zakup + Naprawa)', 'Przychody (Dochód)', 'Całkowity Zysk'],
+                    datasets: [{
+                        data: [totalCost, totalRevenue, totalProfit],
+                        backgroundColor: ['#ef4444', '#3b82f6', '#10b981'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTable(filteredList = null) {
+            const list = filteredList || devices;
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if(list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-500">Brak urządzeń pasujących do kryteriów.</td></tr>`;
+                return;
+            }
+
+            list.forEach((d) => {
+                const originalIndex = devices.indexOf(d);
+
+                let badgeColor = 'bg-slate-700 text-slate-300';
+                const st = (d.status || '').toLowerCase();
+                if(st.includes('sprzedany') || st.includes('sprzedane')) badgeColor = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                else if(st.includes('naprawiony') || st.includes('wykonane') || st.includes('naprawiona')) badgeColor = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                else if(st.includes('dawca') || st.includes('części')) badgeColor = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                else if(st.includes('zatrzymany')) badgeColor = 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+                else if(st.includes('do naprawy')) badgeColor = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+                const zyskColor = (d.zysk || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-700/30 transition border-b border-slate-700/50';
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-white">${d.nazwa || '-'}</td>
+                    <td class="p-4 text-slate-400 text-xs">${d.data_zakupu || '-'}</td>
+                    <td class="p-4 text-right font-mono text-slate-300">${(d.koszt_zakupu || 0).toFixed(2)} kr</td>
+                    <td class="p-4 text-right font-mono text-slate-300">${(d.koszt_naprawy || 0).toFixed(2)} kr</td>
+                    <td class="p-4 text-right font-mono text-slate-300">${(d.dochod || 0).toFixed(2)} kr</td>
+                    <td class="p-4 text-right font-mono font-bold ${zyskColor}">${(d.zysk || 0).toFixed(2)} kr</td>
+                    <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeColor}">${d.status || 'Brak'}</span></td>
+                    <td class="p-4 text-slate-400 text-xs max-w-xs truncate" title="${d.komentarz || ''}">${d.komentarz || '-'}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="editDevice(${originalIndex})" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition" title="Edytuj">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteDevice(${originalIndex})" class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition" title="Usuń">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const statusVal = document.getElementById('statusFilter').value;
+
+            const filtered = devices.filter(d => {
+                const matchQuery = (d.nazwa && d.nazwa.toLowerCase().includes(query)) || 
+                                   (d.komentarz && d.komentarz.toLowerCase().includes(query));
+                const matchStatus = !statusVal || (d.status && d.status === statusVal);
+                return matchQuery && matchStatus;
+            });
+            renderTable(filtered);
+        }
+
+        function calculateProfit() {
+            const kosZakupu = parseFloat(document.getElementById('f-koszt-zakupu').value) || 0;
+            const kosNaprawy = parseFloat(document.getElementById('f-koszt-naprawy').value) || 0;
+            const dochod = parseFloat(document.getElementById('f-dochod').value) || 0;
+            const zysk = dochod - (kosZakupu + kosNaprawy);
+            document.getElementById('f-zysk').value = zysk.toFixed(2);
+        }
+
+        function openAddModal() {
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('form-title').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-amber-400"></i><span>Dodaj nowe urządzenie do bazy</span>`;
+            document.getElementById('deviceForm').reset();
+            document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+            document.getElementById('f-zysk').value = '0.00';
+            switchTab('add');
+            lucide.createIcons();
+        }
+
+        function editDevice(index) {
+            const d = devices[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('form-title').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-amber-400"></i><span>Edytuj urządzenie: ${d.nazwa}</span>`;
+            
+            document.getElementById('f-nazwa').value = d.nazwa || '';
+            document.getElementById('f-data').value = d.data_zakupu || '';
+            document.getElementById('f-status').value = d.status || 'Sprzedany';
+            document.getElementById('f-koszt-zakupu').value = d.koszt_zakupu || 0;
+            document.getElementById('f-koszt-naprawy').value = d.koszt_naprawy || 0;
+            document.getElementById('f-dochod').value = d.dochod || 0;
+            document.getElementById('f-komentarz').value = d.komentarz || '';
+            calculateProfit();
+
+            switchTab('add');
+            lucide.createIcons();
+        }
+
+        function saveDevice(event) {
+            event.preventDefault();
+            const index = parseInt(document.getElementById('editIndex').value);
+            
+            const item = {
+                nazwa: document.getElementById('f-nazwa').value,
+                data_zakupu: document.getElementById('f-data').value,
+                status: document.getElementById('f-status').value,
+                koszt_zakupu: parseFloat(document.getElementById('f-koszt-zakupu').value) || 0,
+                koszt_naprawy: parseFloat(document.getElementById('f-koszt-naprawy').value) || 0,
+                dochod: parseFloat(document.getElementById('f-dochod').value) || 0,
+                zysk: parseFloat(document.getElementById('f-zysk').value) || 0,
+                komentarz: document.getElementById('f-komentarz').value
+            };
+
+            if(index >= 0) {
+                devices[index] = item;
+            } else {
+                devices.unshift(item);
+            }
+
+            localStorage.setItem('marcin_devices', JSON.stringify(devices));
+            switchTab('inventory');
+            renderDashboard();
+        }
+
+        function deleteDevice(index) {
+            if(confirm("Czy na pewno chcesz usunąć to urządzenie z bazy?")) {
+                devices.splice(index, 1);
+                localStorage.setItem('marcin_devices', JSON.stringify(devices));
+                renderTable();
+                renderDashboard();
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(devices, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "marcin_naprawy_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+    </script>
+</body>
+</html>
